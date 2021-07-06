@@ -13,10 +13,6 @@ matrix:
        arch: arm64
        language: python
        python: 3.7
-       before_install:
-       - hostnamectl
-       - python --version
-       - docker --version
        install: skip
        before_script: skip
        script: python3 bfs.py
