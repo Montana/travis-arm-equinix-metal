@@ -1,5 +1,5 @@
 dist: xenial
-language: cpp
+language: go
 os:
   - linux
 arch:
