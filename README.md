@@ -1,2 +1,2 @@
-# travis-arm-equinix-metal
+# Travis ARM (With Equinix Metal) Test
 Equinix Metal Test with Travis CI 
