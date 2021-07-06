@@ -1,7 +1,27 @@
-dist: xenial
-language: go
-os:
-  - linux
-arch:
-  - arm64
-  - ppc64le
+---
+dist: focal
+language: generic
+sudo: required
+
+services:
+  - docker
+
+matrix:
+  fast_finish: true
+  include:
+  
+     - name: "ARM Equinix Metal Test"
+       os: linux
+       dist: focal
+       arch: arm64
+       language: python
+       python: 3.7
+       before_install:
+       - hostnamectl
+       - python --version
+       - docker --version
+       install: skip
+       before_script: skip
+       script: python3 bfs.py
+       env:
+        - LIB_PATH="/usr/bin/shared/x86_64/v1"
