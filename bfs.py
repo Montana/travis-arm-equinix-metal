@@ -1,160 +1,275 @@
-TILESIZE = 48
-GRIDWIDTH = 28
-GRIDHEIGHT = 15
-WIDTH = TILESIZE * GRIDWIDTH
-HEIGHT = TILESIZE * GRIDHEIGHT
-FPS = 60
-WHITE = (255, 255, 255)
-BLACK = (0, 0, 0)
-RED = (255, 0, 0)
-GREEN = (0, 255, 0)
-YELLOW = (255, 255, 0)
-DARKGRAY = (40, 40, 40)
-LIGHTGRAY = (90, 90, 90)
+# Breadth First Test for Equinix Metal by Montana Mendy
 
-pg.init()
-screen = pg.display.set_mode((WIDTH, HEIGHT))
-clock = pg.time.Clock()
+BOARD_SIZE = 3
+
+goal_board = [1, 2, 3, 4, 5, 6, 7, 8, " "]
+board3 = [7, 4, 6, 5, 2, 1, 8, 3, " "]
+board41 = [1, 2, 3, 4, 5, 6, 7, 8, ' ', 9, 10, 12, 13, 14, 11, 15]
+board44 = [1, 2, 3, 4, 5, 6, " ", 7, 8]
 
 
-class SquareGrid:
-    def __init__(self, width, height):
-        self.width = width
-        self.height = height
-        self.walls = []
-        self.connections = [vec(1, 0), vec(-1, 0), vec(0, 1), vec(0, -1)]
-
-    def in_bounds(self, node):
-        return 0 <= node.x < self.width and 0 <= node.y < self.height
-
-    def passable(self, node):
-        return node not in self.walls
-
-    def find_neighbors(self, node):
-        neighbors = [node + connection for connection in self.connections]
-        if (node.x + node.y) % 2:
-            neighbors.reverse()
-        neighbors = filter(self.in_bounds, neighbors)
-        neighbors = filter(self.passable, neighbors)
-        return neighbors
-
-    def draw(self):
-        for wall in self.walls:
-            rect = pg.Rect(wall * TILESIZE, (TILESIZE, TILESIZE))
-            pg.draw.rect(screen, LIGHTGRAY, rect)
+def boardSize(num):
+    global BOARD_SIZE
+    global board
+    BOARD_SIZE = num
+    for i in range(num**2):
+        if i != (num**2) - 1: goal_board.append(i + 1)
+        else: goal_board.append(" ")
+    board = list(goal_board)
 
 
-def vec2int(v):
-    return (int(v.x), int(v.y))
+def show_board(board):
+    index = board.index(" ")
+    for i in range(len(board)):
+        print('{:2}'.format(board[i]), end=" ")
+        if (i % BOARD_SIZE == BOARD_SIZE - 1):
+            print()
+    print()
 
 
-def draw_icons():
-    start_center = (start.x * TILESIZE + TILESIZE / 2,
-                    start.y * TILESIZE + TILESIZE / 2)
-    screen.blit(home_img, home_img.get_rect(center=start_center))
-    goal_center = (goal.x * TILESIZE + TILESIZE / 2,
-                   goal.y * TILESIZE + TILESIZE / 2)
-    screen.blit(cross_img, cross_img.get_rect(center=goal_center))
+def get_possible_actions(board):
+    actions = []
+    empty_index = board.index(" ")
+    x = empty_index % BOARD_SIZE  # 2
+    y = empty_index // BOARD_SIZE  # 3
+
+    if y < ((len(board) - 1) // BOARD_SIZE):
+        actions.append("Down")
+    if y > 0:
+        actions.append("Up")
+    if x < ((len(board) - 1) % BOARD_SIZE):
+        actions.append("Right")
+    if x > 0:
+        actions.append("Left")
+
+    return actions
 
 
-def draw_grid():
-    for x in range(0, WIDTH, TILESIZE):
-        pg.draw.line(screen, LIGHTGRAY, (x, 0), (x, HEIGHT))
-    for y in range(0, HEIGHT, TILESIZE):
-        pg.draw.line(screen, LIGHTGRAY, (0, y), (WIDTH, y))
+def update_board(board, action):
+    empty_index = board.index(" ")
+
+    if action == "Left":
+        target = empty_index - 1
+    elif action == "Right":
+        target = empty_index + 1
+    elif action == "Up":
+        target = empty_index - BOARD_SIZE
+    else:
+        target = empty_index + BOARD_SIZE
+
+    board[empty_index], board[target] = board[target], board[empty_index]
 
 
-icon_dir = path.join(path.dirname(__file__), '../icons')
-home_img = pg.image.load(path.join(icon_dir, 'home.png')).convert_alpha()
-home_img = pg.transform.scale(home_img, (50, 50))
-home_img.fill((0, 255, 0, 255), special_flags=pg.BLEND_RGBA_MULT)
-cross_img = pg.image.load(path.join(icon_dir, 'cross.png')).convert_alpha()
-cross_img = pg.transform.scale(cross_img, (50, 50))
-cross_img.fill((255, 0, 0, 255), special_flags=pg.BLEND_RGBA_MULT)
+def shuffle(board, move_cnt):
+    movement = []
+    for i in range(move_cnt):
+        tmp_action = random.choice(get_possible_actions(board))
+        update_board(board, tmp_action)
+        movement.append(tmp_action)
 
-g = SquareGrid(GRIDWIDTH, GRIDHEIGHT)
-walls = [(10, 7), (11, 7), (12, 7), (13, 7), (14, 7), (15, 7), (16, 7), (7, 7),
-         (6, 7), (5, 7), (5, 5), (5, 6), (1, 6), (2, 6), (3, 6), (5, 10),
-         (5, 11), (5, 12), (5, 9), (5, 8),
-         (12, 8), (12, 9), (12, 10), (12, 11), (15, 14), (15, 13), (15, 12),
-         (15, 11), (15, 10), (17, 7), (18, 7), (21, 7), (21, 6), (21, 5),
-         (21, 4), (21, 3), (22, 5), (23, 5), (24, 5), (25, 5), (18, 10),
-         (20, 10), (19, 10), (21, 10), (22, 10), (23, 10), (14, 4), (14, 5),
-         (14, 6), (14, 0), (14, 1), (9, 2), (9, 1), (7, 3), (8, 3), (10, 3),
-         (9, 3), (11, 3), (2, 5), (2, 4), (2, 3), (2, 2), (2, 0), (2, 1),
-         (0, 11), (1, 11), (2, 11), (21, 2), (20, 11), (20, 12), (23, 13),
-         (23, 14), (24, 10), (25, 10), (6, 12), (7, 12), (10, 12), (11, 12),
-         (12, 12), (5, 3), (6, 3), (5, 4)]
 
-for wall in walls:
-    g.walls.append(vec(wall))
+def BFS(board):
+    visited_states = set()
+    root_node = (0, board, None)
+    frontier = [root_node]
+    loop_cnt = 0
+    num_created_successors = 0
+    while frontier != []:
+        loop_cnt += 1
+        node = frontier.pop(0)
+        if node[1] == goal_board:
+            show_solution(node)
+            print("solution is found on level: ", node[0])
+            print(loop_cnt, num_created_successors, len(visited_states))
+            return
+        successors = expand(node[1])
+        num_created_successors += len(successors)
+        for suc in successors:
+            if tuple(suc) not in visited_states:
+                visited_states.add(tuple(suc))
+                new_node = (node[0] + 1, suc, node)
+                frontier.append(new_node)
 
-start = vec(14, 8)
-goal = vec(20, 0)
-frontier = deque()
-frontier.append(start)
-visited = []
-visited.append(start)
-path = {}
-path[vec2int(start)] = None
 
-paused = True
-running = True
-done = False
-while running:
-    clock.tick(FPS)
-    for event in pg.event.get():
-        if event.type == pg.QUIT:
-            running = False
-        if event.type == pg.KEYDOWN:
-            if event.key == pg.K_ESCAPE:
-                running = False
-            if event.key == pg.K_SPACE:
-                paused = not paused
-            if event.key == pg.K_m:
-             
-                print([(int(loc.x), int(loc.y)) for loc in g.walls])
-        if event.type == pg.MOUSEBUTTONDOWN:
-            mpos = vec(pg.mouse.get_pos()) // TILESIZE
-            if event.button == 1:
-                if mpos in g.walls:
-                    g.walls.remove(mpos)
-                else:
-                    g.walls.append(mpos)
+def show_solution(node):
+    path = [node[1]]
+    while node[2] != None:
+        node = node[2]
+        path.append(node[1])
+    path.reverse()
+    print("solution sequence is...")
+    for b in path:
+        show_board(b)
+    print("solution is found in {} steps".format(len(path) - 1))
 
-    if len(frontier) > 0 and not paused and not done:
-        current = frontier.popleft()
-        if current == goal:
-            done = True
-        for next in g.find_neighbors(current):
-            if next not in visited:
-                frontier.append(next)
-                visited.append(next)
-                path[vec2int(next)] = current - next
 
-    if len(frontier) == 0:
-        done = True
+def expand(board):
+    actions = get_possible_actions(board)
+    successors = []
+    board_number = 0
+    for act in actions:
+        board_number += 1
+        new_board = board[:]
+        update_board(new_board, act)
+        #print(new_board)
+        successors.append(new_board)
+    return successors
 
-    pg.display.set_caption("{:.2f}".format(clock.get_fps()))
-    screen.fill(DARKGRAY)
- 
-    g.draw()
-    for loc in visited:
-        x, y = loc
-        r = pg.Rect(x * TILESIZE + 3, y * TILESIZE + 3, TILESIZE - 3,
-                    TILESIZE - 3)
-        pg.draw.rect(screen, (71, 130, 109), r)
-    if len(frontier) > 0:
-        for n in frontier:
-            r = pg.Rect(n.x * TILESIZE + 3, n.y * TILESIZE + 3, TILESIZE - 3,
-                        TILESIZE - 3)
-            pg.draw.rect(screen, RED, r)
-    if done:
-        current = goal
-        while current != start:
-            r = pg.Rect(current.x * TILESIZE + 9, current.y * TILESIZE + 9,
-                        TILESIZE - 14, TILESIZE - 14)
-            pg.draw.rect(screen, YELLOW, r)
-            current = current + path[vec2int(current)]
-    draw_icons()
-    pg.display.flip()
+
+def DFS(board):
+    visited_states = set()
+    root_node = (0, board, None)
+    frontier = [root_node]
+    loop_cnt = 0
+    num_created_successors = 0
+    while frontier != []:
+        loop_cnt += 1
+        node = frontier.pop(0)
+        if node[1] == goal_board:
+            print(loop_cnt)
+            show_solution(node)
+            print("solution is found on level: ", node[0])
+            print(loop_cnt, num_created_successors, len(visited_states))
+            return
+        successors = expand(node[1])
+        num_created_successors += len(successors)
+        for suc in successors:
+            if tuple(suc) not in visited_states:
+                visited_states.add(tuple(suc))
+                new_node = (node[0] + 1, suc, node)
+                frontier.insert(0, new_node)
+
+
+def DFS_limited(board, max_depth):
+    visited_states = {}
+    root_node = (0, board, None)
+    frontier = [root_node]
+    loop_cnt = 0
+    num_created_successors = 0
+    num_used_successors = 0
+    while frontier != []:
+        loop_cnt += 1
+        node = frontier.pop(0)
+        if node[1] == goal_board:
+            show_solution(node)
+            print("solution was found on level: ", node[0])
+            print(loop_cnt, num_created_successors, len(visited_states))
+            return
+        elif max_depth == 0:
+            print("Max Depth = 0, no solution found")
+            return False
+        elif node[0] < max_depth:
+            successors = expand(node[1])
+            num_created_successors += len(successors)
+            for suc in successors:
+                if tuple(suc) not in visited_states or node[
+                        0] + 1 < visited_states[tuple(suc)]:
+                    num_used_successors += 1
+                    visited_states[tuple(suc)] = node[0] + 1
+                    new_node = (node[0] + 1, suc, node)
+                    frontier.insert(0, new_node)
+
+    if frontier == []:
+        print("no of loops: ", loop_cnt)
+        print("created states: ", len(visited_states))
+        print("no of created successors:", num_created_successors)
+        print("no of used successors: ", num_used_successors)
+        if node[0] == max_depth:
+            print("Max depth reached at level ", node[0],
+                  "and no solution was found")
+        else:
+            print("no new states were found between level", node[0],
+                  "and max depth", max_depth, "and no solution was found")
+        return False
+
+
+def DFS_Iterative_Deepening(board):
+    counter = 1
+    while True:
+        max_depth = counter
+        visited_states = {}
+        root_node = (0, board, None)
+        frontier = [root_node]
+        loop_cnt = 0
+        num_created_successors = 0
+        num_used_successors = 0
+        while frontier != []:
+            loop_cnt += 1
+            node = frontier.pop(0)
+            if node[1] == goal_board:
+                show_solution(node)
+                print("solution was found on level: ", node[0])
+                print("no of loops: ", loop_cnt)
+                print("created states: ", len(visited_states))
+                print("no of created successors:", num_created_successors)
+                print("no of used successors: ", num_used_successors)
+                return
+            elif node[0] < max_depth:
+                successors = expand(node[1])
+                num_created_successors += len(successors)
+                for suc in successors:
+                    if tuple(suc) not in visited_states or node[
+                            0] + 1 < visited_states[tuple(suc)]:
+                        num_used_successors += 1
+                        visited_states[tuple(suc)] = node[0] + 1
+                        new_node = (node[0] + 1, suc, node)
+                        frontier.insert(0, new_node)
+        counter += 1
+
+
+def show_solution2(node):
+    path = [node[3]]
+    while node[4] != None:
+        node = node[4]
+        path.append(node[3])
+    path.reverse()
+    print("Solution sequences...")
+    if len(path) < 100:
+        for b in path:
+            show_board(b)
+    print("Solution in {} steps".format(len(path) - 1))
+
+
+def heuristic(board):
+    count = 0
+    for i in range(len(board)):
+        if board[i] != goal_board[i]:
+            count += 1
+    return count
+
+
+def AStar(board):
+
+    visited_states = {}
+    g = 0
+    h = heuristic(board)
+    root_node = (g + h, h, time.perf_counter(), board, None)
+    frontier = [root_node]
+    loop_cnt = 0
+    num_created_successors = 0
+    while frontier != []:
+        loop_cnt += 1
+        node = heappop(frontier)
+        if node[3] == goal_board:
+            show_solution2(node)
+            print(loop_cnt, num_created_successors, len(visited_states))
+            return
+
+        successors = expand(node[3])
+        num_created_successors += len(successors)
+
+        for suc in successors:
+            h = heuristic(suc)
+            g = node[0] - node[1] + 1
+            if tuple(suc) not in visited_states or g + h < visited_states[
+                    tuple(suc)]:
+                visited_states[tuple(suc)] = g + h
+                new_node = (g + h, h, time.perf_counter(), suc, node)
+                heappush(frontier, new_node)
+
+
+BFS(board44)
+
+print(get_possible_actions(board44))
+
+# From Montana Mendy for Travis CI 
