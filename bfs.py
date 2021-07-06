@@ -1,9 +1,3 @@
-import pygame as pg
-from os import path
-from collections import deque
-
-vec = pg.math.Vector2
-
 TILESIZE = 48
 GRIDWIDTH = 28
 GRIDHEIGHT = 15
