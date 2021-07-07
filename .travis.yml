@@ -5,7 +5,7 @@ sudo: required
 matrix:
   fast_finish: true
   include:
-    - name: ARM Equinix Metal Test (AMD64 & ARM64)
+    - name: ARM Equinix Metal Test (Arm64 v8)
       os: linux
       dist: focal
       arch: arm64 # (V8 Equinix Metal)
